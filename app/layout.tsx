@@ -1,3 +1,4 @@
+//app/layout.tsx
 import './globals.css';
 import type { Metadata } from 'next';
 import NavbarComponent from './components/NavbarComponent';
@@ -13,13 +14,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="es">
       <body className="min-h-screen bg-white text-gray-800 antialiased flex flex-col">
         <NavbarComponent />
-        
-        {/* Main content */}
-        <main className="flex-grow max-w-4xl mx-auto py-6 px-4">
+
+        {/* Main content (sin max-w) */}
+        <main className="flex-grow px-4">
           {children}
         </main>
 
-        {/* Footer */}
         <FooterComponent />
       </body>
     </html>
