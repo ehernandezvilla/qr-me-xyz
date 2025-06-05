@@ -1,8 +1,6 @@
-//app/layout.tsx
-
 import './globals.css';
 import type { Metadata } from 'next';
-import NavbarComponent from './components/NavbarComponent'; // importa el navbar
+import NavbarComponent from './components/NavbarComponent';
 
 export const metadata: Metadata = {
   title: 'QR Generator App - YOURLS/BAKSLASH',
@@ -13,9 +11,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="es">
       <body className="min-h-screen bg-white text-gray-800 antialiased">
-        {/* Navbar arriba */}
         <NavbarComponent />
-        {/* Contenido principal */}
         <main className="max-w-4xl mx-auto py-6 px-4">
           {children}
         </main>

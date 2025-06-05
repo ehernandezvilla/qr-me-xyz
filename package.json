@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "lucide-react": "^0.513.0",
     "mysql2": "^3.14.1",
     "next": "15.3.3",
     "qrcode.react": "^4.2.0",
