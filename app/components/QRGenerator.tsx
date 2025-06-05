@@ -95,7 +95,7 @@ export default function QRGenerator() {
           </p>
 
           <div id="qr-svg">
-          <QRCodeSVG value={shortUrl} size={256} />
+          <QRCodeSVG value={`${shortUrl}?nocache=1`} size={256} />
           </div>
 
           <p className="mt-2 text-sm text-gray-600">
