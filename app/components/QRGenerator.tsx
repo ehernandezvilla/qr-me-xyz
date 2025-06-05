@@ -34,7 +34,7 @@ export default function QRGenerator() {
       await new Promise(resolve => setTimeout(resolve, 100));
 
       // 3️⃣ Capturar SVG
-      const svgElement = document.getElementById('qr-svg')?.innerHTML || '';
+      const svgElement = document.getElementById('qr-svg')?.querySelector('svg')?.outerHTML || '';
 
       console.log('Captured SVG:', svgElement);
 

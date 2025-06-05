@@ -60,19 +60,27 @@ export default function HistoryPage() {
   };
 
   const downloadSVG = (svgContent: string, filename: string) => {
-  const blob = new Blob([svgContent], { type: 'image/svg+xml' });
-  const url = URL.createObjectURL(blob);
+    // Asegurarse que tenga xmlns
+    let finalSvg = svgContent;
+    if (finalSvg && !finalSvg.includes('xmlns="http://www.w3.org/2000/svg"')) {
+      finalSvg = finalSvg.replace(
+        "<svg ",
+        '<svg xmlns="http://www.w3.org/2000/svg" '
+      );
+    }
 
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${filename}.svg`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
+    const blob = new Blob([finalSvg], { type: "image/svg+xml" });
+    const url = URL.createObjectURL(blob);
 
-  URL.revokeObjectURL(url);
-};
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${filename}.svg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
 
+    URL.revokeObjectURL(url);
+  };
 
   const fetchHistory = async (username: string) => {
     setIsLoading(true);
@@ -128,32 +136,27 @@ export default function HistoryPage() {
           <tbody>
             {history.map((item, index) => (
               <tr key={item.id} className="hover:bg-gray-50">
-                <td className="p-2 border text-center">{index + 1}</td>{" "}
-                {/* # */}
+                <td className="p-2 border text-center">{index + 1}</td>
                 <td className="p-2 border text-center">
-  {item.qr_svg ? (
-    <button
-      onClick={() => downloadSVG(item.qr_svg!, `qr_${item.id}`)}
-      className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
-    >
-      Descargar
-    </button>
-  ) : (
-    '-'
-  )}
-</td>
+                  {item.qr_svg ? (
+                    <button
+                      onClick={() => downloadSVG(item.qr_svg!, `qr_${item.id}`)}
+                      className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+                    >
+                      Descargar
+                    </button>
+                  ) : (
+                    "-"
+                  )}
+                </td>
                 <td className="p-2 border text-center">
-                  {" "}
-                  {/* QR */}
                   {item.qr_svg ? (
                     <div dangerouslySetInnerHTML={{ __html: item.qr_svg }} />
                   ) : (
                     "-"
                   )}
                 </td>
-                
-                <td className="p-2 border break-all">{item.original_url}</td>{" "}
-                {/* Original URL */}
+                <td className="p-2 border break-all">{item.original_url}</td>
                 <td className="p-2 border text-blue-600">
                   <a
                     href={item.short_url}
@@ -162,18 +165,12 @@ export default function HistoryPage() {
                   >
                     {item.short_url}
                   </a>
-                </td>{" "}
-                {/* Short URL */}
-                <td className="p-2 border">{item.correlativo}</td>{" "}
-                {/* Correlativo */}
-                <td className="p-2 border text-center">
-                  {item.clicks ?? "-"}
-                </td>{" "}
-                {/* Clicks */}
+                </td>
+                <td className="p-2 border">{item.correlativo}</td>
+                <td className="p-2 border text-center">{item.clicks ?? "-"}</td>
                 <td className="p-2 border">
                   {new Date(item.created_at).toLocaleString()}
-                </td>{" "}
-                {/* Fecha */}
+                </td>
               </tr>
             ))}
           </tbody>
