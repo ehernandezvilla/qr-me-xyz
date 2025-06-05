@@ -15,33 +15,54 @@ export default function QRGenerator() {
   const userData = users.find(u => u.username === (currentUser || 'zoa'));
   const token = userData?.token || '';
   const correlativo = userData?.correlativo || '';
-
   const handleGenerate = async () => {
-    if (!longUrl) return;
+  if (!longUrl) return;
 
-    const apiUrl = `/api/shorturl?token=${token}&url=${encodeURIComponent(longUrl)}&username=${currentUser}`;
+  const apiUrl = `/api/shorturl?token=${token}&url=${encodeURIComponent(longUrl)}&username=${currentUser}`;
 
+  try {
+    setIsLoading(true);
 
+    const response = await fetch(apiUrl);
+    const data = await response.json();
 
-    try {
-      setIsLoading(true);
+    if (data.shorturl) {
+      // 1️⃣ Mostrar el shortUrl
+      setShortUrl(data.shorturl);
 
-      const response = await fetch(apiUrl);
-      const data = await response.json();
+      // 2️⃣ Esperar que React renderice el QR
+      await new Promise(resolve => setTimeout(resolve, 100));
 
-      if (data.shorturl) {
-        setShortUrl(data.shorturl);
-      } else {
-        console.error('Error creating shortlink:', data);
-        setShortUrl('');
-      }
-    } catch (error) {
-      console.error('Error calling API:', error);
+      // 3️⃣ Capturar SVG
+      const svgElement = document.getElementById('qr-svg')?.innerHTML || '';
+
+      console.log('Captured SVG:', svgElement);
+
+      // 4️⃣ POST a /api/save-qr
+      await fetch('/api/save-qr', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: currentUser,
+          original_url: longUrl,
+          short_url: data.shorturl,
+          qr_svg: svgElement
+        })
+      });
+
+      console.log('QR SVG saved to DB');
+    } else {
+      console.error('Error creating shortlink:', data);
       setShortUrl('');
-    } finally {
-      setIsLoading(false);
     }
-  };
+  } catch (error) {
+    console.error('Error calling API:', error);
+    setShortUrl('');
+  } finally {
+    setIsLoading(false);
+  }
+};
+
 
   return (
     <div className="p-4 bg-white rounded shadow max-w-lg mx-auto">
@@ -73,7 +94,9 @@ export default function QRGenerator() {
             </a>
           </p>
 
+          <div id="qr-svg">
           <QRCodeSVG value={shortUrl} size={256} />
+          </div>
 
           <p className="mt-2 text-sm text-gray-600">
             Correlativo: {correlativo}
