@@ -19,7 +19,8 @@ export default function QRGenerator() {
   const handleGenerate = async () => {
     if (!longUrl) return;
 
-    const apiUrl = `/api/shorturl?token=${token}&url=${encodeURIComponent(longUrl)}`;
+    const apiUrl = `/api/shorturl?token=${token}&url=${encodeURIComponent(longUrl)}&username=${currentUser}`;
+
 
 
     try {
