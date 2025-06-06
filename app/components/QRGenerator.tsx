@@ -10,13 +10,18 @@ export default function QRGenerator() {
   const [shortUrl, setShortUrl] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [qrStyle, setQrStyle] = useState<'classic' | 'blue'>('classic'); ;
   
   const { data: session } = useSession();
 
-  // Por ahora, usaremos un token y correlativo por defecto
-  // TODO: Migrar el sistema de tokens a la nueva estructura de usuarios
   const defaultToken = process.env.NEXT_PUBLIC_DEFAULT_TOKEN || '';
   const defaultCorrelativo = session?.user?.username || session?.user?.email || 'user';
+
+  // Configuraciones de colores para diferentes estilos
+  const qrStyles = {
+    classic: { fgColor: '#000000', bgColor: '#ffffff' },
+    blue: { fgColor: '#2563eb', bgColor: '#ffffff' },
+  };
 
   const handleGenerate = async () => {
     if (!longUrl) {
@@ -33,7 +38,6 @@ export default function QRGenerator() {
     setIsLoading(true);
 
     try {
-      // Construir la URL de la API
       const apiUrl = `/api/shorturl?token=${defaultToken}&url=${encodeURIComponent(longUrl)}&username=${session.user.email}`;
 
       const response = await fetch(apiUrl);
@@ -83,6 +87,24 @@ export default function QRGenerator() {
     setError('');
   };
 
+  const downloadQR = () => {
+    const svgElement = document.getElementById('qr-svg')?.querySelector('svg');
+    if (svgElement) {
+      const svgData = new XMLSerializer().serializeToString(svgElement);
+      const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
+      const svgUrl = URL.createObjectURL(svgBlob);
+      
+      const downloadLink = document.createElement('a');
+      downloadLink.href = svgUrl;
+      downloadLink.download = `qr-code-${Date.now()}.svg`;
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
+      document.body.removeChild(downloadLink);
+      
+      URL.revokeObjectURL(svgUrl);
+    }
+  };
+
   return (
     <div className="p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md max-w-lg mx-auto">
       <h2 className="text-2xl mb-6 font-bold text-gray-800 dark:text-gray-100">
@@ -122,6 +144,35 @@ export default function QRGenerator() {
             disabled={isLoading}
             className="border border-gray-300 dark:border-gray-600 p-3 w-full rounded-md text-gray-800 dark:text-gray-100 bg-white dark:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100 dark:disabled:bg-gray-800"
           />
+        </div>
+
+        {/* Selector de estilo QR */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Estilo del QR
+          </label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setQrStyle('classic')}
+              className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                qrStyle === 'classic'
+                  ? 'bg-gray-800 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Clásico
+            </button>
+            <button
+              onClick={() => setQrStyle('blue')}
+              className={`px-3 py-2 rounded text-sm font-medium transition-colors ${
+                qrStyle === 'blue'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-blue-100 text-blue-700 hover:bg-blue-200'
+              }`}
+            >
+              Azul
+            </button>
+          </div>
         </div>
 
         <div className="flex gap-3">
@@ -174,18 +225,31 @@ export default function QRGenerator() {
           </div>
 
           <div id="qr-svg" className="flex justify-center mb-4">
-            <div className="p-4 bg-white rounded-lg shadow-sm">
+            <div className={`p-4 rounded-lg shadow-sm ${
+              qrStyle === 'classic' ? 'bg-gradient-to-br from-blue-50 to-blue-100' : 'bg-white'
+            }`}>
               <QRCodeSVG 
                 value={`${shortUrl}?nocache=1`} 
                 size={200}
                 level="M"
                 includeMargin={true}
+                fgColor={qrStyles[qrStyle].fgColor}
+                bgColor={qrStyles[qrStyle].bgColor}
               />
             </div>
           </div>
 
+          <div className="flex gap-2 justify-center mb-4">
+            <button
+              onClick={downloadQR}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors text-sm"
+            >
+              📥 Descargar QR
+            </button>
+          </div>
+
           <p className="text-xs text-gray-500 dark:text-gray-400">
-            Correlativo: {defaultCorrelativo}
+            Correlativo: {defaultCorrelativo} | Estilo: {qrStyle}
           </p>
         </div>
       )}
