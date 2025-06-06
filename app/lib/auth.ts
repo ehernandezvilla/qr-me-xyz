@@ -124,11 +124,13 @@ export async function hashPassword(password: string): Promise<string> {
   return bcrypt.hash(password, 12);
 }
 
+
+
 export async function createUserWithFreePlan(data: {
   email: string;
   password: string;
-  name?: string;
-  username?: string;
+  name?: string | null;
+  username?: string | null;
 }) {
   const hashedPassword = await hashPassword(data.password);
   
@@ -138,29 +140,48 @@ export async function createUserWithFreePlan(data: {
   });
 
   if (!freePlan) {
-    throw new Error('Free plan not found');
+    throw new Error('Free plan not found. Please run database seed first.');
   }
 
-  // Crear usuario con suscripción gratuita
-  const user = await prisma.user.create({
-    data: {
-      email: data.email,
-      password: hashedPassword,
-      name: data.name,
-      username: data.username,
-      subscription: {
-        create: {
-          planId: freePlan.id,
-          status: 'active',
+  // Crear usuario con suscripción gratuita en una transacción
+  const user = await prisma.$transaction(async (tx) => {
+    // Crear el usuario
+    const newUser = await tx.user.create({
+      data: {
+        email: data.email,
+        password: hashedPassword,
+        name: data.name,
+        username: data.username,
+        emailVerified: false, // Por defecto no verificado
+        currentQRCount: 0,
+        monthlyQRCount: 0,
+        lastMonthReset: new Date(),
+      }
+    });
+
+    // Crear la suscripción
+    await tx.subscription.create({
+      data: {
+        userId: newUser.id,
+        planId: freePlan.id,
+        status: 'active',
+      }
+    });
+
+    // Retornar usuario con suscripción
+    return await tx.user.findUnique({
+      where: { id: newUser.id },
+      include: {
+        subscription: {
+          include: { plan: true }
         }
       }
-    },
-    include: {
-      subscription: {
-        include: { plan: true }
-      }
-    }
+    });
   });
+
+  if (!user) {
+    throw new Error('Failed to create user');
+  }
 
   return user;
 }

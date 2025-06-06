@@ -1,12 +1,11 @@
-// /app/api/shorturl/route.ts
-
+// app/api/shorturl/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getDBConnection } from '@/app/lib/db';
-import { users } from '@/app/lib/auth';
 
 export async function GET(req: NextRequest) {
   const url = req.nextUrl.searchParams.get('url');
   const token = req.nextUrl.searchParams.get('token');
+  const username = req.nextUrl.searchParams.get('username'); // Ahora será email
 
   if (!url || !token) {
     return NextResponse.json({ error: 'Missing url or token' }, { status: 400 });
@@ -15,7 +14,7 @@ export async function GET(req: NextRequest) {
   const yourlsApiUrl = `https://qr-me.xyz/yourls-api.php?signature=${token}&action=shorturl&format=json&url=${encodeURIComponent(url)}`;
 
   try {
-    // 1️⃣ Llamada a YOURLS
+    // Llamada a YOURLS
     const response = await fetch(yourlsApiUrl);
     const data = await response.json();
 
@@ -24,23 +23,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'YOURLS API error', details: data }, { status: 500 });
     }
 
-    // 2️⃣ Obtener user actual y correlativo
-    // OJO: En API route no tienes localStorage, pero puedes pasar el username como parámetro
-    const username = req.nextUrl.searchParams.get('username') || 'unknown';
-    const userData = users.find(u => u.username === username);
-    const correlativo = userData?.correlativo || '';
+    // Insertar en base de datos usando email como identificador
+    if (username) {
+      const connection = await getDBConnection();
 
-    // 3️⃣ Insertar en MySQL
-    const connection = await getDBConnection();
+      await connection.execute(
+        'INSERT INTO qr_history (username, original_url, short_url, correlativo) VALUES (?, ?, ?, ?)',
+        [username, url, data.shorturl, username] // username ahora es email
+      );
 
-    await connection.execute(
-      'INSERT INTO qr_history (username, original_url, short_url, correlativo) VALUES (?, ?, ?, ?)',
-      [username, url, data.shorturl, correlativo]
-    );
+      await connection.end();
+    }
 
-    await connection.end();
-
-    // 4️⃣ Retornar respuesta
     return NextResponse.json(data);
 
   } catch (error) {

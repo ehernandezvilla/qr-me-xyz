@@ -35,6 +35,8 @@ export default function NavbarComponent() {
     setMenuOpen((prev) => !prev);
   };
 
+  
+
   // Evitar hydration mismatch mostrando loading state
   if (!hasMounted) {
     return (
@@ -61,6 +63,8 @@ export default function NavbarComponent() {
 
   const isAuthenticated = status === 'authenticated' && session?.user;
   const isLoading = status === 'loading';
+
+  
 
   return (
     <nav className="bg-white dark:bg-gray-900 shadow-md sticky top-0 z-50">
@@ -178,24 +182,22 @@ export default function NavbarComponent() {
           )}
 
           {!isAuthenticated && !isLoading && (
-            <>
-              <Link
-                href="/register"
-                className="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-500 transition-colors"
-                onClick={toggleMenu}
-              >
-                Registro
-              </Link>
-              <Link
-                href="/login"
-                className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded w-full transition-colors"
-                onClick={toggleMenu}
-              >
-                <LogIn size={18} className="mr-2" />
-                Login
-              </Link>
-            </>
-          )}
+  <>
+    <Link
+      href="/register"
+      className="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-500 transition-colors"
+    >
+      Registro
+    </Link>
+    <Link
+      href="/login"
+      className="flex items-center bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded transition-colors"
+    >
+      <LogIn size={18} className="mr-1" />
+      Login
+    </Link>
+  </>
+)}
         </div>
       )}
     </nav>

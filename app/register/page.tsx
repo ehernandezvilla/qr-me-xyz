@@ -43,6 +43,12 @@ export default function RegisterPage() {
       return;
     }
 
+    if (!formData.email) {
+      setError('El email es requerido');
+      setIsLoading(false);
+      return;
+    }
+
     try {
       // Registrar usuario
       const response = await fetch('/api/auth/register', {
@@ -51,8 +57,8 @@ export default function RegisterPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name: formData.name,
-          username: formData.username,
+          name: formData.name || undefined,
+          username: formData.username || undefined,
           email: formData.email,
           password: formData.password,
         }),
@@ -64,7 +70,7 @@ export default function RegisterPage() {
         throw new Error(data.error || 'Error al registrar usuario');
       }
 
-      // Auto-login después del registro
+      // Auto-login después del registro exitoso
       const signInResult = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
@@ -72,13 +78,13 @@ export default function RegisterPage() {
       });
 
       if (signInResult?.error) {
-        setError('Usuario registrado, pero error al iniciar sesión');
-      } else {
+        setError('Usuario registrado exitosamente, pero hubo un error al iniciar sesión. Intenta hacer login manualmente.');
+        setIsLoading(false);
+      } else if (signInResult?.ok) {
         router.push('/dashboard');
       }
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Error desconocido');
-    } finally {
       setIsLoading(false);
     }
   };
@@ -113,7 +119,8 @@ export default function RegisterPage() {
               name="name"
               value={formData.name}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={isLoading}
+              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
               placeholder="Tu nombre completo"
             />
           </div>
@@ -128,7 +135,8 @@ export default function RegisterPage() {
               name="username"
               value={formData.username}
               onChange={handleChange}
-              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={isLoading}
+              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
               placeholder="nombre_usuario"
             />
           </div>
@@ -144,7 +152,8 @@ export default function RegisterPage() {
               value={formData.email}
               onChange={handleChange}
               required
-              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={isLoading}
+              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
               placeholder="tu@email.com"
             />
           </div>
@@ -160,7 +169,8 @@ export default function RegisterPage() {
               value={formData.password}
               onChange={handleChange}
               required
-              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={isLoading}
+              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
               placeholder="Mínimo 6 caracteres"
             />
           </div>
@@ -176,7 +186,8 @@ export default function RegisterPage() {
               value={formData.confirmPassword}
               onChange={handleChange}
               required
-              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              disabled={isLoading}
+              className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:bg-gray-100"
               placeholder="Repite tu contraseña"
             />
           </div>
@@ -184,7 +195,7 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={isLoading}
-            className={`w-full py-2 px-4 rounded-md text-white font-medium ${
+            className={`w-full py-2 px-4 rounded-md text-white font-medium transition-colors ${
               isLoading
                 ? 'bg-gray-400 cursor-not-allowed'
                 : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
