@@ -107,6 +107,14 @@ export default function NavbarComponent() {
                   Dashboard
                 </Link>
                 <Link
+                href="/dashboard/generator"
+                className="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-500 transition-colors"
+                onClick={toggleMenu}
+              >
+                <QrCode size={18} className="mr-2" />
+                Generator
+              </Link>
+                <Link
                   href="/dashboard/history"
                   className="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-500 transition-colors"
                 >
@@ -159,6 +167,14 @@ export default function NavbarComponent() {
               >
                 <Home size={18} className="mr-2" />
                 Dashboard
+              </Link>
+              <Link
+                href="/dashboard/generator"
+                className="flex items-center text-gray-700 dark:text-gray-300 hover:text-blue-500 transition-colors"
+                onClick={toggleMenu}
+              >
+                <Home size={18} className="mr-2" />
+                Generator
               </Link>
               <Link
                 href="/dashboard/history"

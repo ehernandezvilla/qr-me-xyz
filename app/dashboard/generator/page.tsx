@@ -1,10 +1,12 @@
+// app/dashboard/page.tsx
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
+import QRGenerator from '@/app/components/QRGenerator';
 
-export default function DashboardPage() {
+export default function GeneratorPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
 
@@ -29,21 +31,13 @@ export default function DashboardPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between mb-6 items-center">
-        <h1 className="text-2xl font-bold">QR-me Dashboard</h1>
+        <h1 className="text-2xl font-bold">QR-me xyz</h1>
         <p className="text-gray-600">
           Bienvenido, {session.user?.name || session.user?.email}
         </p>
       </div>
 
-      {/* Botón para ir al Generador */}
-      <div className="mt-8">
-        <button
-          onClick={() => router.push('/dashboard/generator')}
-          className="inline-flex items-center px-6 py-3 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors"
-        >
-          ➡️ Ir al Generador de QRs
-        </button>
-      </div>
+      <QRGenerator />
     </div>
   );
 }
