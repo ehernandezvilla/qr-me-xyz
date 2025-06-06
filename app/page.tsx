@@ -1,22 +1,25 @@
-// /app/page.tsx
-
+// app/page.tsx
 'use client';
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getCurrentUser } from '@/app/lib/auth';
+import { useSession } from 'next-auth/react';
 
 export default function HomePage() {
   const router = useRouter();
+  const { status } = useSession();
 
   useEffect(() => {
-    const currentUser = getCurrentUser();
-    if (currentUser) {
+    if (status === 'authenticated') {
       router.push('/dashboard');
-    } else {
+    } else if (status === 'unauthenticated') {
       router.push('/login');
     }
-  }, [router]);
+  }, [status, router]);
 
-  return null; // No renderiza nada, solo redirige
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    </div>
+  );
 }
