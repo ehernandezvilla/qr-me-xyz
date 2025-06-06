@@ -7,6 +7,271 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ===== USUARIOS Y AUTENTICACIÓN =====
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  username          String?  @unique
+  name              String?
+  avatar            String?
+  emailVerified     Boolean  @default(false)
+  password          String?  // Para auth credentials
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Límites actuales (cache para performance)
+  currentQRCount    Int      @default(0)
+  monthlyQRCount    Int      @default(0)
+  lastMonthReset    DateTime @default(now())
+  
+  // Relaciones
+  subscription      Subscription?
+  qrCodes           QRCode[]
+  sessions          Session[]
+  accounts          Account[]
+  apiKeys           ApiKey[]
+  organizations     OrganizationMember[]
+  analytics         Analytics[]
+  
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ===== PLANES Y SUSCRIPCIONES =====
+model Plan {
+  id            String   @id @default(cuid())
+  name          String   @unique // "free", "pro", "enterprise"
+  displayName   String   // "Plan Gratuito", "Plan Pro"
+  description   String?
+  price         Decimal  @db.Decimal(10, 2)
+  currency      String   @default("USD")
+  interval      String   // "month", "year"
+  
+  // Límites del plan
+  maxQRCodes    Int      // -1 para ilimitado
+  maxScans      Int      // -1 para ilimitado
+  maxApiCalls   Int      // -1 para ilimitado
+  hasAnalytics  Boolean  @default(false)
+  hasCustomDomain Boolean @default(false)
+  hasBulkExport Boolean  @default(false)
+  hasTeamAccess Boolean  @default(false)
+  
+  // Stripe
+  stripeProductId String? @unique
+  stripePriceId   String? @unique
+  
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  subscriptions Subscription[]
+  
+  @@map("plans")
+}
+
+model Subscription {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  planId            String
+  
+  // Stripe
+  stripeCustomerId       String?
+  stripeSubscriptionId   String? @unique
+  stripePriceId          String?
+  stripeCurrentPeriodEnd DateTime?
+  
+  status            String   // "active", "canceled", "past_due", "unpaid"
+  cancelAtPeriodEnd Boolean  @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan              Plan     @relation(fields: [planId], references: [id])
+  
+  @@map("subscriptions")
+}
+
+// ===== QR CODES MEJORADO =====
+model QRCode {
+  id           String   @id @default(cuid())
+  userId       String
+  
+  // URLs
+  originalUrl  String   @db.Text
+  shortUrl     String   @unique
+  shortCode    String   @unique // La parte final de la URL corta
+  
+  // Metadatos
+  title        String?
+  description  String?
+  qrSvg        String?  @db.MediumText
+  
+  // Configuración
+  size         Int      @default(256)
+  errorCorrection String @default("M") // L, M, Q, H
+  
+  // Analytics
+  totalScans   Int      @default(0)
+  isActive     Boolean  @default(true)
+  expiresAt    DateTime?
+  
+  // Organización
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+  
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scans        QRScan[]
+  analytics    Analytics[]
+  
+  @@map("qr_codes")
+}
+
+model QRScan {
+  id        String   @id @default(cuid())
+  qrCodeId  String
+  
+  // Datos del scan
+  ipAddress String
+  userAgent String?  @db.Text
+  referrer  String?
+  country   String?
+  city      String?
+  device    String?
+  browser   String?
+  os        String?
+  
+  scannedAt DateTime @default(now())
+  
+  qrCode    QRCode   @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  
+  @@index([qrCodeId])
+  @@index([scannedAt])
+  @@map("qr_scans")
+}
+
+// ===== ORGANIZACIONES Y EQUIPOS =====
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logo        String?
+  domain      String?  @unique // Para custom domains
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  members     OrganizationMember[]
+  qrCodes     QRCode[]
+  
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id             String   @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String   @default("member") // "owner", "admin", "member"
+  
+  joinedAt       DateTime @default(now())
+  
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, organizationId])
+  @@map("organization_members")
+}
+
+// ===== API Y ANALYTICS =====
+model ApiKey {
+  id        String   @id @default(cuid())
+  userId    String
+  name      String
+  key       String   @unique
+  
+  // Límites
+  rateLimit Int      @default(1000) // requests per hour
+  lastUsed  DateTime?
+  usageCount Int     @default(0)
+  
+  active    Boolean  @default(true)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("api_keys")
+}
+
+model Analytics {
+  id       String   @id @default(cuid())
+  userId   String
+  qrCodeId String?
+  
+  // Métricas diarias agregadas
+  date     DateTime @db.Date
+  scans    Int      @default(0)
+  views    Int      @default(0)
+  
+  // Datos agregados por país, dispositivo, etc.
+  countries Json?   // {"US": 50, "MX": 30, ...}
+  devices   Json?   // {"mobile": 60, "desktop": 40, ...}
+  browsers  Json?   // {"chrome": 70, "safari": 30, ...}
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  qrCode   QRCode? @relation(fields: [qrCodeId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, qrCodeId, date])
+  @@index([date])
+  @@map("analytics")
+}
+
+// ===== MIGRAR DATOS EXISTENTES =====
+// Mantener tabla original para migración
 model qr_history {
   id           Int       @id @default(autoincrement())
   username     String    @db.VarChar(100)
@@ -17,6 +282,7 @@ model qr_history {
   qr_svg       String?   @db.MediumText
 }
 
+// Tablas YOURLS originales (mantener para compatibilidad)
 model yprezq_log {
   click_id     Int      @id @default(autoincrement())
   click_time   DateTime @db.DateTime(0)
